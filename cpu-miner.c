@@ -705,6 +705,13 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		uint32_t ntime, nonce;
 		char ntimestr[9], noncestr[9], *xnonce2str, *req;
 
+		unsigned char *px = (unsigned char *) work->data;
+		printf("----------------------- stratum_submit\n");
+		for (int i = 0; i < 80; i++)
+			printf("%02x", px[i]);
+		printf("\n==========\nNonce = %08x, time = %08x\n", work->data[19], work->data[17]);
+		printf("----------------------- \n\n");
+
 		le32enc(&ntime, work->data[17]);
 		le32enc(&nonce, work->data[19]);
 		bin2hex(ntimestr, (const unsigned char *)(&ntime), 4);
@@ -1088,6 +1095,17 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 	work->data[20] = 0x80000000;
 	work->data[31] = 0x00000280;
 
+	printf("=============================== stratum_gen_work\n");
+	printf("prev_hash: ");
+	unsigned char *px = (char *) sctx->job.prevhash;
+	for (int i = 0; i < 32; i++)
+		printf("%02x", px[i]);
+	printf("\n");
+	px = (unsigned char *) work->data;
+	for (int i = 0; i < 80; i++)
+		printf("%02x", px[i]);
+	printf("\n===============================\n\n");
+
 	pthread_mutex_unlock(&sctx->work_lock);
 
 	if (opt_debug) {
@@ -1147,7 +1165,7 @@ static void *miner_thread(void *userdata)
 		int rc;
 
 		if (have_stratum) {
-			while (time(NULL) >= g_work_time + 120)
+			while (time(NULL) >= g_work_time + 12000)
 				sleep(1);
 			pthread_mutex_lock(&g_work_lock);
 			if (work.data[19] >= end_nonce && !memcmp(work.data, g_work.data, 76))
